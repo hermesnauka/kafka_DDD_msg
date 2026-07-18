@@ -24,6 +24,19 @@ public final class Message {
     this.status = MessageStatus.PENDING;
   }
 
+  /**
+   * Rebuilds a {@code Message} with an already-persisted status, bypassing
+   * the {@code markPolled}/{@code markDelivered} transition checks — used
+   * only by {@link ChatRoom#reconstitute} when loading from storage, never
+   * for an actual state transition.
+   */
+  static Message reconstitute(
+      MessageId id, UserId senderId, MessageContent content, Timestamp sentAt, MessageStatus status) {
+    Message message = new Message(id, senderId, content, sentAt);
+    message.status = status;
+    return message;
+  }
+
   void markPolled() {
     requireStatus(MessageStatus.PENDING);
     this.status = MessageStatus.POLLED;

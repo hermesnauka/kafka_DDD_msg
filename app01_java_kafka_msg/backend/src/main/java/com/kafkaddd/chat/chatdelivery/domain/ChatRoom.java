@@ -39,6 +39,26 @@ public final class ChatRoom {
     return room;
   }
 
+  /**
+   * Rebuilds a {@code ChatRoom} from already-persisted state — used only by
+   * the repository adapter in {@code chatdelivery.infrastructure}. Unlike
+   * {@link #create}, this records no domain events and runs no business
+   * rules: the snapshots are assumed to already be consistent (they came
+   * from a previously-valid room).
+   */
+  public static ChatRoom reconstitute(
+      RoomId id, List<ParticipantSnapshot> participants, List<MessageSnapshot> messages) {
+    ChatRoom room = new ChatRoom(id);
+    for (ParticipantSnapshot p : participants) {
+      room.participants.put(p.userId(), new Participant(p.userId(), p.joinedAt()));
+    }
+    for (MessageSnapshot m : messages) {
+      room.messages.put(
+          m.id(), Message.reconstitute(m.id(), m.senderId(), m.content(), m.sentAt(), m.status()));
+    }
+    return room;
+  }
+
   public RoomId id() {
     return id;
   }

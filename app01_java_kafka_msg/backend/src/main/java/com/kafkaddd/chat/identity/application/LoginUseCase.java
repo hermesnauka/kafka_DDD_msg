@@ -1,5 +1,6 @@
 package com.kafkaddd.chat.identity.application;
 
+import com.kafkaddd.chat.identity.domain.AccountLockedException;
 import com.kafkaddd.chat.identity.domain.Email;
 import com.kafkaddd.chat.identity.domain.PasswordHasher;
 import com.kafkaddd.chat.identity.domain.Timestamp;
@@ -28,7 +29,11 @@ public class LoginUseCase {
     this.refreshTokenStore = refreshTokenStore;
   }
 
-  @Transactional
+  // Both exceptions are thrown *after* the save() below, inside the same
+  // transaction — without noRollbackFor, Spring's default rollback-on-any-
+  // RuntimeException would undo that save(), silently discarding the
+  // failedLoginAttempts/lockedUntil update SR-1's throttling depends on.
+  @Transactional(noRollbackFor = {InvalidCredentialsException.class, AccountLockedException.class})
   public AuthResult login(String rawEmail, String rawPassword) {
     User user = userRepository.findByEmail(new Email(rawEmail)).orElseThrow(InvalidCredentialsException::new);
 

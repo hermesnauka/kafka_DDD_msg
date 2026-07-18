@@ -13,8 +13,8 @@ import java.util.Objects;
  */
 public final class User {
 
-  static final int MAX_FAILED_ATTEMPTS = 5;
-  static final long LOCKOUT_MINUTES = 15;
+  public static final int MAX_FAILED_ATTEMPTS = 5;
+  public static final long LOCKOUT_MINUTES = 15;
 
   private final UserId id;
   private final Email email;

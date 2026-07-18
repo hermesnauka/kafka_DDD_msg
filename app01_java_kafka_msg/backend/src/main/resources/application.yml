@@ -11,10 +11,10 @@ spring:
     password: ${DB_PASSWORD:chat-dev-only}
 
   jpa:
-    # No entities yet; schema migrations will be added via Flyway in a
-    # later increment rather than Hibernate auto-DDL.
+    # Flyway (db/migration/) owns the schema; Hibernate only validates
+    # entities against it — no auto-DDL.
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     open-in-view: false
 
   data:
@@ -30,13 +30,20 @@ spring:
       # No bindings declared yet — added alongside the Kafka producer/
       # consumer adapters in chatdelivery/infrastructure (PLAN_SSDLC.md §7.3).
 
-# Reserved for the Identity context's JWT issuance (SR-2) once
-# identity/infrastructure adds a token signer — intentionally no default,
-# a real deployment must set JWT_SECRET explicitly.
+# JWT signing (SR-2). Intentionally no default — a leaked/predictable
+# signing secret lets anyone forge valid auth tokens, so unlike
+# DB_PASSWORD above this must never have a value checked into the repo,
+# not even a labeled "dev-only" one. For local dev, generate your own and
+# export it before starting the app:
+#   export JWT_SECRET=$(openssl rand -base64 48)
+# The app fails fast at startup if this is unset (see
+# identity.infrastructure's JWT config).
 app:
   security:
     jwt:
-      secret: ${JWT_SECRET:}
+      secret: ${JWT_SECRET}
+      access-token-ttl: ${JWT_ACCESS_TTL:PT15M}
+      refresh-token-ttl: ${JWT_REFRESH_TTL:P7D}
 
 management:
   endpoints:

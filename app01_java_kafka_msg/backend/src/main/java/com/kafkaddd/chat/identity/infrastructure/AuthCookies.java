@@ -46,4 +46,26 @@ class AuthCookies {
         .maxAge(properties.refreshTokenTtl())
         .build();
   }
+
+  /** Same attributes as {@link #accessTokenCookie}, but empty and immediately expired — clears it browser-side. */
+  ResponseCookie clearedAccessTokenCookie() {
+    return ResponseCookie.from(ACCESS_TOKEN_COOKIE, "")
+        .httpOnly(true)
+        .secure(true)
+        .sameSite("Strict")
+        .path("/")
+        .maxAge(0)
+        .build();
+  }
+
+  /** Same attributes as {@link #refreshTokenCookie}, but empty and immediately expired — clears it browser-side. */
+  ResponseCookie clearedRefreshTokenCookie() {
+    return ResponseCookie.from(REFRESH_TOKEN_COOKIE, "")
+        .httpOnly(true)
+        .secure(true)
+        .sameSite("Strict")
+        .path("/api/v1/auth")
+        .maxAge(0)
+        .build();
+  }
 }

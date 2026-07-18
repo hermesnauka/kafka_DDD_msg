@@ -3,14 +3,17 @@ package com.kafkaddd.chat.identity.infrastructure;
 import com.kafkaddd.chat.identity.application.AuthResult;
 import com.kafkaddd.chat.identity.application.CurrentUserQuery;
 import com.kafkaddd.chat.identity.application.LoginUseCase;
+import com.kafkaddd.chat.identity.application.LogoutUseCase;
 import com.kafkaddd.chat.identity.application.RefreshTokenUseCase;
 import com.kafkaddd.chat.identity.application.RegisterUserUseCase;
 import com.kafkaddd.chat.identity.application.UserView;
+import com.kafkaddd.chat.identity.domain.UserId;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,6 +32,7 @@ class AuthController {
   private final RegisterUserUseCase registerUserUseCase;
   private final LoginUseCase loginUseCase;
   private final RefreshTokenUseCase refreshTokenUseCase;
+  private final LogoutUseCase logoutUseCase;
   private final CurrentUserQuery currentUserQuery;
   private final AuthCookies cookies;
 
@@ -36,11 +40,13 @@ class AuthController {
       RegisterUserUseCase registerUserUseCase,
       LoginUseCase loginUseCase,
       RefreshTokenUseCase refreshTokenUseCase,
+      LogoutUseCase logoutUseCase,
       CurrentUserQuery currentUserQuery,
       AuthCookies cookies) {
     this.registerUserUseCase = registerUserUseCase;
     this.loginUseCase = loginUseCase;
     this.refreshTokenUseCase = refreshTokenUseCase;
+    this.logoutUseCase = logoutUseCase;
     this.currentUserQuery = currentUserQuery;
     this.cookies = cookies;
   }
@@ -64,6 +70,24 @@ class AuthController {
       @CookieValue(AuthCookies.REFRESH_TOKEN_COOKIE) String refreshToken, HttpServletResponse response) {
     AuthResult result = refreshTokenUseCase.refresh(refreshToken);
     setAuthCookies(response, result);
+    return ResponseEntity.noContent().build();
+  }
+
+  /**
+   * Idempotent by design: with no valid {@code access_token} cookie (already
+   * expired, or never present), {@code authentication} is simply null and
+   * this only clears cookies — there being nothing to revoke isn't an
+   * error. Matched by {@code /api/v1/auth/**} in SecurityConfig's permitAll,
+   * so a request with an already-expired access token can still reach this
+   * and clear its stale refresh cookie.
+   */
+  @PostMapping("/logout")
+  ResponseEntity<Void> logout(Authentication authentication, HttpServletResponse response) {
+    if (authentication != null) {
+      logoutUseCase.logout((UserId) authentication.getPrincipal());
+    }
+    response.addHeader(HttpHeaders.SET_COOKIE, cookies.clearedAccessTokenCookie().toString());
+    response.addHeader(HttpHeaders.SET_COOKIE, cookies.clearedRefreshTokenCookie().toString());
     return ResponseEntity.noContent().build();
   }
 

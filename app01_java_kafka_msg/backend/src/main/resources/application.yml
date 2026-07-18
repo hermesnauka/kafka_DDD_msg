@@ -1,0 +1,48 @@
+spring:
+  application:
+    name: chat-backend
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:chatdb}
+    username: ${DB_USER:chat}
+    # Dev-only default, matches deploy/docker-compose.yaml's Postgres service.
+    # Any real deployment must override via DB_PASSWORD — never commit a
+    # real credential here (SR-9's "no secrets in the repo" spirit).
+    password: ${DB_PASSWORD:chat-dev-only}
+
+  jpa:
+    # No entities yet; schema migrations will be added via Flyway in a
+    # later increment rather than Hibernate auto-DDL.
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:localhost:9092}
+      # No bindings declared yet — added alongside the Kafka producer/
+      # consumer adapters in chatdelivery/infrastructure (PLAN_SSDLC.md §7.3).
+
+# Reserved for the Identity context's JWT issuance (SR-2) once
+# identity/infrastructure adds a token signer — intentionally no default,
+# a real deployment must set JWT_SECRET explicitly.
+app:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when-authorized

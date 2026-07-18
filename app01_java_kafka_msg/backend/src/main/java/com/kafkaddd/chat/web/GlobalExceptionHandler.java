@@ -63,8 +63,14 @@ class GlobalExceptionHandler {
 
   @ExceptionHandler(NotAParticipantException.class)
   ResponseEntity<ApiError> handle(NotAParticipantException e) {
-    // SR-5: a non-participant gets a plain 403, never a body that confirms
-    // or denies whether the room itself exists.
+    // SR-5 requires blocking content access to non-participants, which this
+    // does — but note 403 (not a participant) vs. 404 (NoSuchRoomException)
+    // are still distinguishable, so a caller can tell "this room exists but
+    // isn't mine" from "this room doesn't exist" (room-ID enumeration, not
+    // a credential/account-level leak). Unlike InvalidCredentialsException's
+    // deliberate collapsing of "unknown email" vs. "wrong password", this
+    // hasn't been collapsed — flagged here as a conscious choice, not an
+    // oversight, should that tradeoff need revisiting later.
     return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiError.of(e.getMessage()));
   }
 

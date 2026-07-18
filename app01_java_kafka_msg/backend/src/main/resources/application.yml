@@ -24,9 +24,11 @@ spring:
 
   cloud:
     function:
-      # Explicit, so a future Analytics & Education consumer function
-      # doesn't get ambiguously auto-bound alongside this one.
-      definition: chatRoomEventsConsumer
+      # `;` binds each function independently (not `|`, which would pipe
+      # one's output into the next) — chatRoomEventsConsumer and
+      # educationConsumer both read chat.room.events, under their own
+      # separate consumer groups (see the two -in-0 bindings below).
+      definition: chatRoomEventsConsumer;educationConsumer
     stream:
       kafka:
         binder:
@@ -41,6 +43,17 @@ spring:
         chatRoomEventsConsumer-in-0:
           destination: chat.room.events
           group: chat-delivery-service
+          content-type: application/json
+        # Analytics & Education observes the same topic under its own
+        # group (ChatRoomEventsObserverConfig) — independent of the
+        # binding above, never blocking or racing with it.
+        educationConsumer-in-0:
+          destination: chat.room.events
+          group: analytics-education-service
+          content-type: application/json
+        # Analytics & Education's own telemetry topic (LifecycleEventKafkaPublisher).
+        education-telemetry-out-0:
+          destination: educational.telemetry
           content-type: application/json
 
 # JWT signing (SR-2). Intentionally no default — a leaked/predictable
